@@ -1,103 +1,106 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen p-6 max-w-3xl mx-auto" dir="rtl">
+      <h1 className="text-2xl font-bold mb-4">ملخص الملفات بالذكاء الاصطناعي</h1>
+      <UploadAndSummarize />
+    </main>
+  );
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+function UploadAndSummarize() {
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [text, setText] = useState<string>("");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file && text.trim().length === 0) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    const form = new FormData();
+    if (file) form.append("file", file);
+    if (text.trim().length > 0) form.append("text", text.trim());
+    try {
+      const res = await fetch("/api/summarize", { method: "POST", body: form });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ غير متوقع");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <input
+          type="file"
+          accept=".pdf,.docx,.txt"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          className="block"
+        />
+        <div>
+          <label htmlFor="text" className="block mb-1 font-medium">أو ألصق نصاً مباشراً:</label>
+          <textarea
+            id="text"
+            name="text"
+            rows={6}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full border rounded p-2"
+            placeholder="الصق النص هنا (اختياري)"
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          disabled={(!file && text.trim().length === 0) || loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {loading ? "جار المعالجة..." : "تلخيص"}
+        </button>
+      </form>
+
+      {error && <p className="text-red-600 mt-4">{error}</p>}
+
+      {result && (
+        <section className="mt-8 space-y-3">
+          <h2 className="text-xl font-semibold">الملخص</h2>
+          {result.title && <p className="font-medium">العنوان: {result.title}</p>}
+          {result.outline?.length > 0 && (
+            <>
+              <p className="font-medium">العناوين الفرعية:</p>
+              <ul className="list-disc pr-5">
+                {result.outline.map((it: string, i: number) => (
+                  <li key={i}>{it}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {result.bullets?.length > 0 && (
+            <>
+              <p className="font-medium">النقاط:</p>
+              <ul className="list-disc pr-5">
+                {result.bullets.map((it: string, i: number) => (
+                  <li key={i}>{it}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {result.keywords?.length > 0 && (
+            <p>
+              <span className="font-medium">كلمات مفتاحية:</span>{" "}
+              {result.keywords.join("، ")}
+            </p>
+          )}
+        </section>
+      )}
+    </section>
   );
 }
