@@ -1,8 +1,5 @@
 export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
-import * as pdfParse from "pdf-parse";
-import mammoth from "mammoth";
-import { fileTypeFromBuffer } from "file-type";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
 const CHUNK_WORDS = 1500;
@@ -20,6 +17,8 @@ async function extractText(file: File): Promise<string> {
   const buf = Buffer.from(await file.arrayBuffer());
   if (buf.byteLength > MAX_BYTES) throw new Error("الملف أكبر من الحد المسموح (20MB)");
 
+  // استيرادات ديناميكية لتجنّب تحميل تبعيات قد تعتمد على Web APIs في وقت التحميل
+  const { fileTypeFromBuffer } = await import("file-type");
   const kind = await fileTypeFromBuffer(buf);
   const name = file.name.toLowerCase();
 
@@ -27,14 +26,18 @@ async function extractText(file: File): Promise<string> {
     return buf.toString("utf8");
   }
   if (name.endsWith(".pdf") || kind?.mime === "application/pdf") {
-    const res = await (pdfParse as any)(buf);
+    const pdfParseMod: any = await import("pdf-parse");
+    const pdfParseFn = (pdfParseMod?.default ?? pdfParseMod) as (b: Buffer) => Promise<{ text: string }>;
+    const res = await pdfParseFn(buf);
     return res.text || "";
   }
   if (
     name.endsWith(".docx") ||
     kind?.mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
-    const res = await mammoth.extractRawText({ buffer: buf });
+    const mammothMod: any = await import("mammoth");
+    const mammothLib = mammothMod?.default ?? mammothMod;
+    const res = await mammothLib.extractRawText({ buffer: buf });
     return res.value || "";
   }
   throw new Error("نوع الملف غير مدعوم. الرجاء رفع PDF أو DOCX أو TXT");
